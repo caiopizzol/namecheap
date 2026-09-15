@@ -5,7 +5,7 @@ import {
 	formatPricing,
 	formatSearchResults,
 	formatTldList,
-} from "./format.js";
+} from "./formatters.js";
 import {
 	type NamecheapClient,
 	normalizeTld,

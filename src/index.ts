@@ -2,8 +2,8 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { registerTools, SERVER_INFO } from "./mcp-tools.js";
 import { NamecheapClient, readConfigFromEnv } from "./namecheap.js";
-import { registerTools, SERVER_INFO } from "./tools.js";
 
 async function main() {
 	let client: NamecheapClient;

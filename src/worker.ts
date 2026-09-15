@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/cfworker";
+import { registerTools, SERVER_INFO } from "./mcp-tools.js";
 import { NamecheapClient, readConfigFromEnv } from "./namecheap.js";
-import { registerTools, SERVER_INFO } from "./tools.js";
 
 export interface Env {
 	[key: string]: string | undefined;
@@ -25,7 +25,6 @@ function constantTimeEqual(a: string, b: string): boolean {
 	return diff === 0;
 }
 
-// Require a token in every environment, including local development.
 function authorize(request: Request, env: Env): Response | null {
 	if (env.MCP_AUTH_TOKEN) {
 		const header = request.headers.get("authorization") ?? "";
@@ -58,7 +57,6 @@ async function handleMcp(request: Request, env: Env): Promise<Response> {
 	try {
 		client = new NamecheapClient(readConfigFromEnv(env));
 	} catch (err) {
-		// Operator misconfiguration (missing Namecheap secrets).
 		return jsonRpcError(-32603, (err as Error).message, 503);
 	}
 	const server = new McpServer(SERVER_INFO, {

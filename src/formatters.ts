@@ -2,11 +2,11 @@ import type { DomainCheckResult, PriceEntry, TldEntry } from "./namecheap.js";
 
 export function formatDomainResults(results: DomainCheckResult[]): string {
 	return results
-		.map((r) => {
-			const status = r.available ? "✅ Available" : "❌ Taken";
-			let line = `${r.domain} — ${status}`;
-			if (r.premium && r.premiumPrice) {
-				line += ` (Premium: $${r.premiumPrice}/yr)`;
+		.map((result) => {
+			const status = result.available ? "✅ Available" : "❌ Taken";
+			let line = `${result.domain} — ${status}`;
+			if (result.premium && result.premiumPrice) {
+				line += ` (Premium: $${result.premiumPrice}/yr)`;
 			}
 			return line;
 		})
@@ -17,8 +17,8 @@ export function formatSearchResults(
 	keyword: string,
 	results: DomainCheckResult[],
 ): string {
-	const available = results.filter((r) => r.available);
-	const taken = results.filter((r) => !r.available);
+	const available = results.filter((result) => result.available);
+	const taken = results.filter((result) => !result.available);
 
 	let text = `Domain search for "${keyword}":\n\n`;
 	if (available.length > 0) {
@@ -39,10 +39,10 @@ export function formatPricing(
 	prices: PriceEntry[],
 ): string {
 	if (prices.length === 0) return `No pricing found for .${tld}`;
-	const lines = prices.map((p) => {
-		let line = `.${tld} — ${p.duration} ${p.durationType}: $${p.price} ${p.currency}`;
-		if (p.price !== p.regularPrice) {
-			line += ` (regular: $${p.regularPrice})`;
+	const lines = prices.map((price) => {
+		let line = `.${tld} — ${price.duration} ${price.durationType}: $${price.price} ${price.currency}`;
+		if (price.price !== price.regularPrice) {
+			line += ` (regular: $${price.regularPrice})`;
 		}
 		return line;
 	});
@@ -52,7 +52,8 @@ export function formatPricing(
 export function formatTldList(tlds: TldEntry[]): string {
 	if (tlds.length === 0) return "Could not retrieve TLD list.";
 	const lines = tlds.map(
-		(t) => `.${t.name}${t.apiRegisterable ? "" : " (not available via API)"}`,
+		(tld) =>
+			`.${tld.name}${tld.apiRegisterable ? "" : " (not available via API)"}`,
 	);
 	return `Supported TLDs (${lines.length}):\n\n${lines.join("\n")}`;
 }
