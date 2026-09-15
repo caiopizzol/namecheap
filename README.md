@@ -1,59 +1,67 @@
-# namecheap
+<p align="center">
+  <img src="docs/assets/icon.svg" width="80" height="80" alt="Namecheap domain tools">
+</p>
 
-[![GitHub release](https://img.shields.io/github/v/release/caiopizzol/namecheap)](https://github.com/caiopizzol/namecheap/releases)
+<h1 align="center">Namecheap</h1>
 
-Namecheap domain tools as an MCP server (local stdio or remote on Cloudflare Workers) and as a CLI. Check domain availability, search a keyword across TLDs, get pricing, and list supported TLDs.
+<p align="center">
+  Find a domain, check prices, and use the same tools from your terminal or AI agent.
+</p>
 
-## Tools
+<p align="center">
+  <a href="https://github.com/caiopizzol/namecheap/releases"><img src="https://img.shields.io/github/v/release/caiopizzol/namecheap" alt="Release"></a>
+  <a href="https://github.com/caiopizzol/namecheap/actions/workflows/check.yml"><img src="https://github.com/caiopizzol/namecheap/actions/workflows/check.yml/badge.svg" alt="Checks"></a>
+  <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&amp;logoColor=white" alt="TypeScript"></a>
+  <a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-000000?logo=bun&amp;logoColor=white" alt="Bun"></a>
+</p>
 
-- **check_domains** — Check availability of one or more domain names
-- **search_domains** — Search for a keyword across popular TLDs
-- **get_pricing** — Get pricing for registration, renewal, or transfer by TLD
-- **get_tld_list** — List all TLDs supported by Namecheap
+## Get started
 
-## Credentials
-
-Enable API access in your Namecheap profile and whitelist the public IP that will call the API. Namecheap validates the real source IP of every request, not only the `ClientIp` parameter, so the machine (or Worker egress) making the calls must be on the whitelist.
-
-| Variable | Description |
-|---|---|
-| `NAMECHEAP_API_USER` | Your Namecheap API username |
-| `NAMECHEAP_API_KEY` | Your Namecheap API key |
-| `NAMECHEAP_USERNAME` | Namecheap username (defaults to API user) |
-| `NAMECHEAP_CLIENT_IP` | Your whitelisted IP address |
-| `NAMECHEAP_SANDBOX` | Set to `"true"` for the sandbox environment |
-
-## Setup
+You'll need [Bun](https://bun.sh), Node.js 22+, and [Namecheap API access](https://www.namecheap.com/support/api/intro/). Add your machine's public IPv4 address to Namecheap's whitelist. If it changes, update the whitelist and `NAMECHEAP_CLIENT_IP`.
 
 ```sh
 bun install
-cp .env.example .env  # fill in your Namecheap API credentials
-bun run build         # emits dist/index.js (stdio MCP) and dist/cli.js (CLI)
-bun run check         # lint, typecheck, tests
+cp .env.example .env
+# Fill in .env, then build:
+bun run build
+node --env-file=.env dist/cli.js check example.com --json
 ```
 
-## CLI
+| Variable | What to put here |
+|---|---|
+| `NAMECHEAP_API_USER` | Your API username |
+| `NAMECHEAP_API_KEY` | Your API key |
+| `NAMECHEAP_CLIENT_IP` | Your whitelisted IPv4 address |
+| `NAMECHEAP_USERNAME` | Optional; defaults to your API username |
+| `NAMECHEAP_SANDBOX` | Optional; `true` uses Namecheap's test API |
+
+## Use the CLI
+
+From the checkout, run `bun src/cli.ts`:
 
 ```sh
-namecheap check example.com mybrand.io
-namecheap search mybrand --tlds com,io,dev
-namecheap pricing io --action RENEW
-namecheap tlds
-namecheap search mybrand --json   # machine-readable output
+bun src/cli.ts check example.com mybrand.io
+bun src/cli.ts search mybrand --tlds com,io,dev --json
+bun src/cli.ts pricing io --action RENEW
+bun src/cli.ts tlds
 ```
 
-Run it from a checkout with `bun src/cli.ts <command>` or `node --env-file=.env dist/cli.js <command>`. The CLI reads the same environment variables as the server, plus `--sandbox` to force the sandbox API. It exits 1 on API errors and 2 on usage errors.
+Use `--json` for scripts and agents, `--sandbox` for the test API, and `--help` for all options. Pricing accepts `REGISTER` (default), `RENEW`, or `TRANSFER`. The CLI exits with `1` for API/config errors and `2` for invalid arguments.
 
-After installing the package, `namecheap` runs the CLI and `namecheap-stdio` runs the MCP server.
+If you've installed the commands, use `namecheap` for the CLI and `namecheap-stdio` for MCP. Regular commands read environment variables; the checkout examples above let Bun load `.env`.
 
-## MCP over stdio
+Checks accept up to **50 domains** at a time, including custom search lists. Split longer lists into separate calls. If the API reports an error for a domain, the whole call fails; it won't label that domain as taken.
+
+## Connect an AI agent
+
+Add this to your MCP client config, replacing the path and credentials:
 
 ```json
 {
   "mcpServers": {
     "namecheap": {
       "command": "node",
-      "args": ["dist/index.js"],
+      "args": ["/absolute/path/to/namecheap/dist/index.js"],
       "env": {
         "NAMECHEAP_API_USER": "your_username",
         "NAMECHEAP_API_KEY": "your_api_key",
@@ -64,51 +72,15 @@ After installing the package, `namecheap` runs the CLI and `namecheap-stdio` run
 }
 ```
 
-## Remote MCP on Cloudflare Workers
+The four tools are `check_domains`, `search_domains`, `get_pricing`, and `get_tld_list`.
 
-`src/worker.ts` serves the same tools over Streamable HTTP at `/mcp`. It accepts POST requests and returns 405 for GET/DELETE (no persistent SSE stream or sessions). It is stateless (one server per request) and fails closed: requests are refused until `MCP_AUTH_TOKEN` is set, including during local development.
+Want remote MCP? See [Cloudflare Workers setup](docs/worker.md). The HTTP handler works, but Namecheap access still needs compatible whitelisted IPv4 egress.
+
+## Work on the code
 
 ```sh
-cp .dev.vars.example .dev.vars   # local secrets for wrangler dev
-bun run dev                      # http://localhost:8787/mcp
-wrangler secret put NAMECHEAP_API_USER
-wrangler secret put NAMECHEAP_API_KEY
-wrangler secret put NAMECHEAP_CLIENT_IP
-wrangler secret put MCP_AUTH_TOKEN
-bun run deploy
+bun run check   # formatting, lint, types, and tests
+bun run build   # refresh the compiled CLI and stdio server
 ```
 
-Client configuration:
-
-```json
-{
-  "mcpServers": {
-    "namecheap": {
-      "type": "http",
-      "url": "https://namecheap.<your-subdomain>.workers.dev/mcp",
-      "headers": { "Authorization": "Bearer <MCP_AUTH_TOKEN>" }
-    }
-  }
-}
-```
-
-**Deployment prerequisite:** Namecheap requires whitelisted IPv4 egress. The ordinary Worker deployment above does not provide a dedicated outbound IPv4 address, and a working `/mcp` endpoint or `tools/list` response does not establish Namecheap connectivity. Do not whitelist broad Cloudflare ranges as a workaround.
-
-A compatible static-IPv4 egress service must be selected and verified before relying on this deployment. Cloudflare documents an Enterprise [Dedicated CDN Egress IPs](https://developers.cloudflare.com/smart-shield/configuration/dedicated-egress-ips/other-products/#workers) option for Workers; suitability for this destination and account must be confirmed. No relay or managed-egress integration is included yet.
-
-Before uploading secrets or deploying, verify the intended Cloudflare account with `wrangler whoami`. Use an account belonging to this project.
-
-Domain checks (including custom search TLD lists) accept at most 50 domains per request. Split larger lists into separate calls. A provider error for any domain fails that check batch rather than reporting the domain as taken.
-
-## Project structure
-
-The source stays flat, with tests next to the code they cover:
-
-- `cli.ts`: command parsing, validation, and CLI output.
-- `index.ts`: stdio MCP entry point (keeps the existing `dist/index.js` path).
-- `worker.ts`: authenticated HTTP MCP entry point.
-- `mcp-tools.ts`: shared MCP tool registration.
-- `namecheap.ts`: API client, configuration, response parsing, and domain types.
-- `formatters.ts`: text output shared by the CLI and MCP tools.
-
-Run `bun run check` for formatting, lint, types, and tests. Run `bun run build` after source changes to refresh the installed CLI.
+Tests live next to the source. `cli.ts` and `index.ts` start the CLI and stdio MCP; `worker.ts` handles HTTP. `namecheap.ts` talks to the API, `mcp-tools.ts` registers tools, and `formatters.ts` builds text output.
