@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-	formatDomainResults,
-	formatPricing,
-	formatSearchResults,
-	formatTldList,
-} from "./format.js";
-import {
 	NamecheapClient,
 	NamecheapError,
 	parseApiResponse,
@@ -123,35 +117,6 @@ describe("parsers", () => {
 			{ name: "com", apiRegisterable: true },
 			{ name: "museum", apiRegisterable: false },
 		]);
-	});
-});
-
-describe("formatters", () => {
-	it("formats domain results", () => {
-		const results = parseDomainCheckResults(parseApiResponse(CHECK_XML));
-		expect(formatDomainResults(results)).toBe(
-			"example.com — ❌ Taken\nrarebrand.io — ✅ Available (Premium: $1500/yr)",
-		);
-	});
-
-	it("formats search results with available and taken sections", () => {
-		const results = parseDomainCheckResults(parseApiResponse(CHECK_XML));
-		const text = formatSearchResults("x", results);
-		expect(text).toContain("Available (1):");
-		expect(text).toContain("Taken (1):");
-	});
-
-	it("formats pricing and tld list", () => {
-		const prices = parsePricing(parseApiResponse(PRICING_XML));
-		expect(formatPricing("com", "REGISTER", prices)).toContain(
-			".com — 1 YEAR: $10.28 USD (regular: $13.98)",
-		);
-		expect(formatPricing("com", "REGISTER", [])).toBe(
-			"No pricing found for .com",
-		);
-		expect(formatTldList(parseTldList(parseApiResponse(TLD_XML)))).toContain(
-			".museum (not available via API)",
-		);
 	});
 });
 

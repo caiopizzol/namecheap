@@ -19,7 +19,7 @@ function request(method: string, params = {}, token = "test-token") {
 	});
 }
 afterEach(() => vi.unstubAllGlobals());
-it("requires a configured token even with the former bypass variable", async () => {
+it("requires a configured token even when ALLOW_UNAUTHENTICATED is set", async () => {
 	expect(
 		(
 			await worker.fetch(request("tools/list"), {
@@ -39,7 +39,7 @@ it("rejects incorrect tokens before fetching upstream", async () => {
 	expect(fetch).not.toHaveBeenCalled();
 });
 it("initializes and lists tools without session state", async () => {
-	const r = await worker.fetch(
+	const response = await worker.fetch(
 		request("initialize", {
 			protocolVersion: "2025-03-26",
 			capabilities: {},
@@ -47,8 +47,8 @@ it("initializes and lists tools without session state", async () => {
 		}),
 		env,
 	);
-	expect(r.status).toBe(200);
-	expect(r.headers.get("mcp-session-id")).toBeNull();
+	expect(response.status).toBe(200);
+	expect(response.headers.get("mcp-session-id")).toBeNull();
 	const list = await worker.fetch(request("tools/list"), env);
 	expect(
 		((await list.json()) as { result: { tools: unknown[] } }).result.tools,
@@ -64,17 +64,17 @@ it("returns a successful tool result after closing the request transport", async
 				),
 		),
 	);
-	const r = await worker.fetch(
+	const response = await worker.fetch(
 		request("tools/call", {
 			name: "check_domains",
 			arguments: { domains: "example.com" },
 		}),
 		env,
 	);
-	expect(r.status).toBe(200);
+	expect(response.status).toBe(200);
 	expect(
-		((await r.json()) as { result: { content: { text: string }[] } }).result
-			.content[0].text,
+		((await response.json()) as { result: { content: { text: string }[] } })
+			.result.content[0].text,
 	).toContain("Taken");
 });
 it("returns upstream failures as tool errors", async () => {
@@ -82,14 +82,14 @@ it("returns upstream failures as tool errors", async () => {
 		"fetch",
 		vi.fn(async () => new Response("<html>failure</html>", { status: 500 })),
 	);
-	const r = await worker.fetch(
+	const response = await worker.fetch(
 		request("tools/call", {
 			name: "check_domains",
 			arguments: { domains: "example.com" },
 		}),
 		env,
 	);
-	const body = (await r.json()) as {
+	const body = (await response.json()) as {
 		result: { isError: boolean; content: { text: string }[] };
 	};
 	expect(body.result.isError).toBe(true);

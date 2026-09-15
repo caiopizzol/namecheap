@@ -36,6 +36,8 @@ export interface TldEntry {
 
 export type PricingAction = "REGISTER" | "RENEW" | "TRANSFER";
 
+export const MAX_DOMAINS_PER_CHECK = 50;
+
 export const POPULAR_TLDS = [
 	"com",
 	"net",
@@ -85,8 +87,8 @@ export function readConfigFromEnv(env: {
 		["NAMECHEAP_API_KEY", apiKey],
 		["NAMECHEAP_CLIENT_IP", clientIp],
 	]
-		.filter(([, v]) => !v)
-		.map(([k]) => k);
+		.filter(([, value]) => !value)
+		.map(([key]) => key);
 	if (missing.length > 0) {
 		throw new NamecheapError(
 			`Missing required environment variables: ${missing.join(", ")}`,
@@ -111,33 +113,33 @@ export function parseApiResponse(xml: string, status = 200): Xml {
 	}
 	if (apiResponse["@_Status"] === "ERROR") {
 		const errors = asArray<Xml>(apiResponse.Errors?.Error);
-		const msg =
+		const message =
 			errors.map((e) => e?.["#text"] ?? e).join("; ") || "Unknown API error";
-		throw new NamecheapError(`Namecheap API error: ${msg}`);
+		throw new NamecheapError(`Namecheap API error: ${message}`);
 	}
 	return apiResponse.CommandResponse;
 }
 
 export function parseDomainCheckResults(response: Xml): DomainCheckResult[] {
-	return asArray<Xml>(response?.DomainCheckResult).map((r) => {
-		if (r["@_ErrorNo"] && r["@_ErrorNo"] !== "0") {
+	return asArray<Xml>(response?.DomainCheckResult).map((domain) => {
+		if (domain["@_ErrorNo"] && domain["@_ErrorNo"] !== "0") {
 			throw new NamecheapError(
-				`Domain check failed for ${r["@_Domain"]}: ${r["@_Description"] || r["@_ErrorNo"]}`,
+				`Domain check failed for ${domain["@_Domain"]}: ${domain["@_Description"] || domain["@_ErrorNo"]}`,
 			);
 		}
 		const result: DomainCheckResult = {
-			domain: r["@_Domain"],
-			available: r["@_Available"] === "true",
-			premium: r["@_IsPremiumName"] === "true",
+			domain: domain["@_Domain"],
+			available: domain["@_Available"] === "true",
+			premium: domain["@_IsPremiumName"] === "true",
 		};
 		if (result.premium) {
 			result.premiumPrice =
-				Number.parseFloat(r["@_PremiumRegistrationPrice"]) || undefined;
+				Number.parseFloat(domain["@_PremiumRegistrationPrice"]) || undefined;
 			result.premiumRenewalPrice =
-				Number.parseFloat(r["@_PremiumRenewalPrice"]) || undefined;
+				Number.parseFloat(domain["@_PremiumRenewalPrice"]) || undefined;
 		}
-		const icann = Number.parseFloat(r["@_IcannFee"]);
-		if (icann > 0) result.icannFee = icann;
+		const icannFee = Number.parseFloat(domain["@_IcannFee"]);
+		if (icannFee > 0) result.icannFee = icannFee;
 		return result;
 	});
 }
@@ -145,19 +147,19 @@ export function parseDomainCheckResults(response: Xml): DomainCheckResult[] {
 export function parsePricing(response: Xml): PriceEntry[] {
 	const product =
 		response?.UserGetPricingResult?.ProductType?.ProductCategory?.Product;
-	return asArray<Xml>(product?.Price).map((p) => ({
-		duration: Number.parseInt(p["@_Duration"], 10),
-		durationType: p["@_DurationType"],
-		price: Number.parseFloat(p["@_YourPrice"]),
-		regularPrice: Number.parseFloat(p["@_RegularPrice"]),
-		currency: p["@_Currency"],
+	return asArray<Xml>(product?.Price).map((price) => ({
+		duration: Number.parseInt(price["@_Duration"], 10),
+		durationType: price["@_DurationType"],
+		price: Number.parseFloat(price["@_YourPrice"]),
+		regularPrice: Number.parseFloat(price["@_RegularPrice"]),
+		currency: price["@_Currency"],
 	}));
 }
 
 export function parseTldList(response: Xml): TldEntry[] {
-	return asArray<Xml>(response?.Tlds?.Tld).map((t) => ({
-		name: t["@_Name"],
-		apiRegisterable: t["@_IsApiRegisterable"] === "true",
+	return asArray<Xml>(response?.Tlds?.Tld).map((tld) => ({
+		name: tld["@_Name"],
+		apiRegisterable: tld["@_IsApiRegisterable"] === "true",
 	}));
 }
 
@@ -168,7 +170,7 @@ export function normalizeTld(tld: string): string {
 export function splitList(value: string): string[] {
 	return value
 		.split(",")
-		.map((s) => s.trim())
+		.map((item) => item.trim())
 		.filter(Boolean);
 }
 
@@ -197,16 +199,18 @@ export class NamecheapClient {
 		);
 		url.searchParams.set("ClientIp", this.config.clientIp);
 		url.searchParams.set("Command", command);
-		for (const [k, v] of Object.entries(params)) {
-			url.searchParams.set(k, v);
+		for (const [key, value] of Object.entries(params)) {
+			url.searchParams.set(key, value);
 		}
-		const res = await this.fetchImpl(url.toString());
-		return parseApiResponse(await res.text(), res.status);
+		const response = await this.fetchImpl(url.toString());
+		return parseApiResponse(await response.text(), response.status);
 	}
 
 	async checkDomains(domains: string[]): Promise<DomainCheckResult[]> {
-		if (domains.length > 50) {
-			throw new NamecheapError("At most 50 domains can be checked per request");
+		if (domains.length > MAX_DOMAINS_PER_CHECK) {
+			throw new NamecheapError(
+				`At most ${MAX_DOMAINS_PER_CHECK} domains can be checked per request`,
+			);
 		}
 		if (domains.length === 0) {
 			throw new NamecheapError("No domains provided");

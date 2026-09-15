@@ -99,3 +99,16 @@ A compatible static-IPv4 egress service must be selected and verified before rel
 Before uploading secrets or deploying, verify the intended Cloudflare account with `wrangler whoami`. Use an account belonging to this project.
 
 Domain checks (including custom search TLD lists) accept at most 50 domains per request. Split larger lists into separate calls. A provider error for any domain fails that check batch rather than reporting the domain as taken.
+
+## Project structure
+
+The source stays flat, with tests next to the code they cover:
+
+- `cli.ts`: command parsing, validation, and CLI output.
+- `index.ts`: stdio MCP entry point (keeps the existing `dist/index.js` path).
+- `worker.ts`: authenticated HTTP MCP entry point.
+- `mcp-tools.ts`: shared MCP tool registration.
+- `namecheap.ts`: API client, configuration, response parsing, and domain types.
+- `formatters.ts`: text output shared by the CLI and MCP tools.
+
+Run `bun run check` for formatting, lint, types, and tests. Run `bun run build` after source changes to refresh the installed CLI.
