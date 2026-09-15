@@ -1,59 +1,46 @@
-# Goal: CLI interface and serverless MCP
+# CLI and serverless MCP
 
-## Agreed outcome
+## Goal
 
-Expose domain checks, keyword searches, pricing and TLD listing through a CLI and a serverless remote MCP, sharing one client and retaining stdio.
+Use the same Namecheap client from a CLI, local stdio MCP, and remote Cloudflare Worker.
 
-## Constraints and decisions
+## Status
 
-- User reaffirmed serverless and Cloudflare Workers on 2026-09-15; no Node-runtime switch. Evaluate costs before provisioning paid egress; do not substitute a NUC server.
-- Current priority: evaluate agent CLI usability before deciding whether a Namecheap skill is necessary. Native Worker egress investigation is deferred.
-- User authorized removal of the earlier deployment from the work account. Wrangler confirmed deletion on 2026-09-15.
-- Use the CF_TOKEN from `/Users/cpolive/dev/personal/kicktires/.env` for the intended Cloudflare account. Verified account listing and Workers read access; never commit credentials.
-- Conventional commits; GitHub writer from `git config github.account` is `caiopizzol`.
-- Maintain existing four MCP tool contracts. Reject checks exceeding 50 domains rather than adding batching.
+- CLI and stdio MCP work. The CLI completed a live domain check.
+- A fresh agent used the CLI correctly without a skill in one simulated search-and-pricing task.
+- The local `namecheap` launcher is on PATH. It reads `NAMECHEAP_*` settings from the checkout's `.env`, then the shared agent environment file. Explicit process variables take precedence.
+- The Worker passes local authentication and request tests. Live Namecheap access from the Worker is still unverified.
+- The earlier work-account deployment was deleted. No replacement deployment or paid egress service has been created.
 
-## Completion criteria and evidence
+## Decisions
 
-- [x] Shared client, formatters, tool registration, stdio, CLI and Worker entry points implemented.
-- [x] CLI validates usage before credentials, uses exit 2 for usage and 1 for config/API errors; subprocess tests cover help, invalid input, successful mocked sandbox JSON and API failures.
-- [x] Worker requires bearer token in every environment; request tests cover fail-closed behavior, invalid auth, initialization, tool listing, mocked success and upstream error results.
-- [x] Domain limit and per-domain provider errors handled with focused tests. Neutral unexpected-response diagnostics.
-- [x] Removed unsupported broad Cloudflare-range workaround from README; documented deployment prerequisite and account check.
-- [x] Checks pass: 36 tests, lint, typecheck, Node build; Wrangler bundle dry-run passed after the final method-policy change.
-- [x] Local implementation committed as `6bd5858` on `feat/cli-serverless`.
-- [ ] PR delivery remains pending the deployment architecture decision.
-- [ ] Select compatible static-IPv4 egress after cost review, obtain approved credentials and whitelist IPs.
-- [ ] Deploy in intended account and verify successful real Namecheap requests through both CLI and remote MCP. Mocked responses do not satisfy this criterion.
+Keep Cloudflare Workers; don't switch to a Node host or NUC. Check costs before paying for egress. That investigation is paused while we improve the CLI, code, and docs.
 
-## Networking evidence and cost research
+Use the approved personal-account token from the existing kicktires environment file for future Cloudflare work. Never copy credentials into the repo. Verify GitHub writes against `git config github.account`.
 
-Namecheap official API introduction requires IPv4 whitelisting. Prior Mac experiments reported error 1011150 with the actual source IP for both valid and bogus ClientIp parameters. This supports source validation, but does not show the parameter is never validated. Prior Worker probe failed with HTML HTTP 500; an IPv6 result from a separate IP-check service does not prove the Namecheap connection used IPv6.
+Keep the four MCP tool names and CLI output shapes. Reject checks over 50 domains. A provider error fails the batch instead of reporting a domain as taken. Require a Worker bearer token in every environment; GET and DELETE return 405.
 
-Cloudflare Enterprise Dedicated CDN Egress supports Workers fetch in documented configurations; suitability for this third-party destination/account remains unverified. Ordinary Worker fetch has no configured dedicated egress here. A Cloudflare Tunnel does not confer a static public IPv4 on the NUC.
+## Delivery
 
-Pricing checked 2026-09-15:
-- Fixie HTTP proxy: free 500 requests/100 MB; $5 monthly 2,500 requests/500 MB; $19 monthly 25,000 requests/10 GB. HTTPS uses CONNECT. Workers node:http is fetch-backed and its Agent is a stub, so standard Node proxy-agent snippets are not established Workers integrations.
-- QuotaGuard Static: $19 monthly, 20,000 requests/10 GB, shared static IP pair. Investigating inbound fixed-target HTTPS proxy suitability before recommending.
-- Cloudflare Dedicated CDN Egress: Enterprise, no verified public quote.
+- [PR #1](https://github.com/caiopizzol/namecheap/pull/1): CLI and Worker interfaces — merged.
+- [PR #2](https://github.com/caiopizzol/namecheap/pull/2): project rename — merged.
+- [PR #3](https://github.com/caiopizzol/namecheap/pull/3): CI checks — merged; GitHub Check passed.
+- [PR #4](https://github.com/caiopizzol/namecheap/pull/4): cleanup — merged as `1d8c6eb39ecdfca4e8a72db84c4f2a0ea979ab44`; Check and Cubic passed.
 
-Sources:
-- https://www.namecheap.com/support/api/intro/
-- https://www.namecheap.com/support/api/methods/domains/check/
-- https://developers.cloudflare.com/smart-shield/configuration/dedicated-egress-ips/other-products/#workers
-- https://developers.cloudflare.com/workers/runtime-apis/nodejs/http/
-- https://usefixie.com/pricing
-- https://usefixie.com/documentation/http-and-https-requests
-- https://www.quotaguard.com/products/pricing
+Cleanup verification: 37 tests, formatting, lint, types, clean build, Worker bundle, and live CLI check passed. Grok 4.6 reviewed the scope. It helped simplify command handling and separate formatter tests; we kept `dist/index.js` to avoid breaking existing MCP configs.
 
-## Consultations and resume
+Cleanup delivery is complete. Local consultation records are in `/tmp/namecheap-consult/`; no background review monitor is active.
 
-Grok 4.6 xhigh existing session: `/tmp/namecheap-consult/grok/session-id`. Current review records `/tmp/namecheap-consult/fix-review.*`; consultation completed successfully. Accepted GET/DELETE 405 after verifying SDK stream lifecycle, explicit Node CLI subprocess runtime, and stdio startup error handling. Rejected restoring unavailable=false for domain provider errors: it would falsely report taken; fail-batch policy is documented. Earlier Grok endorsed stateless transport and flagged domain cap; later recommended NUC relay, which is not the accepted direction. Earlier Claude timed out after 20 minutes without an opinion.
+## Remote access still needs work
 
-Next: Cloudflare Workers retained; current focus is CLI agent usability. Low-cost CONNECT proxies are not drop-in Workers fetch integrations; do not implement a custom HTTP/TLS stack without evidence. Live CLI check succeeded on 2026-09-15: `node --env-file=.env --env-file=/Users/cpolive/Sync/agent-config/environment/agents.env dist/cli.js check example.com --json` returned available=false. Shared agents.env supplies API key; local .env supplies user/client IP. Remote Worker connectivity remains unverified. Implementation is committed; no paid resources provisioned and no replacement deployment created.
+[Namecheap requires IPv4 whitelisting](https://www.namecheap.com/support/api/intro/). Mac probes returned the actual source IP in whitelist errors. They don't prove that the `ClientIp` parameter is never validated.
 
-## Local CLI installation
+An earlier Worker request returned HTML HTTP 500. A separate IP-check service reported IPv6; that doesn't establish which address family the Namecheap connection used.
 
-Installed `/Users/cpolive/.local/bin/namecheap` on the existing PATH. This local Node launcher imports this checkout's `dist/cli.js` and reads only NAMECHEAP_* variables from the local `.env` then shared `agents.env`; shared-file values win, and explicit process environment wins over both. No secrets embedded or copied. Run `bun run build` after changing CLI source.
+Cloudflare's Enterprise [Dedicated CDN Egress IPs](https://developers.cloudflare.com/smart-shield/configuration/dedicated-egress-ips/other-products/#workers) supports some Worker fetch configurations. Its fit for this destination and account, and its price, remain unverified. Don't whitelist broad Cloudflare ranges.
 
-Verified from `/tmp`: help, live `namecheap check example.com --json` (available=false), unknown option exit 2, explicit empty API key override exit 1. No skill needed for command usage based on the prior isolated baseline. Remote Worker egress remains deferred.
+Cost research on 2026-09-15: [Fixie](https://usefixie.com/pricing) offers 500 requests free, then 2,500 for $5/month. [QuotaGuard Static](https://www.quotaguard.com/products/pricing) starts at $19/month for 20,000 requests. Their usual CONNECT proxy setup isn't a drop-in fit for Workers' fetch-backed HTTP client; neither has been selected.
+
+## Next
+
+Finish the documentation update and confirm PR delivery. When remote work resumes, verify a supported egress path and a successful real `check_domains` call before marking the remote MCP complete.
