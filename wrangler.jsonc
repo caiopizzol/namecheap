@@ -1,0 +1,11 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "namecheap-mcp",
+	"main": "src/worker.ts",
+	"compatibility_date": "2026-09-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": { "enabled": true }
+	// Secrets (wrangler secret put): NAMECHEAP_API_USER, NAMECHEAP_API_KEY,
+	// NAMECHEAP_CLIENT_IP, MCP_AUTH_TOKEN. Optional vars: NAMECHEAP_USERNAME,
+	// NAMECHEAP_SANDBOX. Local dev reads .dev.vars.
+}
