@@ -6,7 +6,8 @@ Expose domain checks, keyword searches, pricing and TLD listing through a CLI an
 
 ## Constraints and decisions
 
-- User reaffirmed serverless on 2026-09-15. Evaluate costs before provisioning paid egress; do not substitute a NUC server.
+- User reaffirmed serverless and Cloudflare Workers on 2026-09-15; no Node-runtime switch. Evaluate costs before provisioning paid egress; do not substitute a NUC server.
+- Current priority: evaluate agent CLI usability before deciding whether a Namecheap skill is necessary. Native Worker egress investigation is deferred.
 - User authorized removal of the earlier deployment from the work account. Wrangler confirmed deletion on 2026-09-15.
 - Use the CF_TOKEN from `/Users/cpolive/dev/personal/kicktires/.env` for the intended Cloudflare account. Verified account listing and Workers read access; never commit credentials.
 - Conventional commits; GitHub writer from `git config github.account` is `caiopizzol`.
@@ -49,4 +50,10 @@ Sources:
 
 Grok 4.6 xhigh existing session: `/tmp/namecheap-consult/grok/session-id`. Current review records `/tmp/namecheap-consult/fix-review.*`; consultation completed successfully. Accepted GET/DELETE 405 after verifying SDK stream lifecycle, explicit Node CLI subprocess runtime, and stdio startup error handling. Rejected restoring unavailable=false for domain provider errors: it would falsely report taken; fail-batch policy is documented. Earlier Grok endorsed stateless transport and flagged domain cap; later recommended NUC relay, which is not the accepted direction. Earlier Claude timed out after 20 minutes without an opinion.
 
-Next: user question pending on Node serverless + Fixie free-tier proof versus keeping Workers. Low-cost CONNECT proxies are not drop-in Workers fetch integrations; do not implement a custom HTTP/TLS stack without evidence. No successful live Namecheap request yet. Implementation is committed; no paid resources provisioned and no replacement deployment created.
+Next: Cloudflare Workers retained; current focus is CLI agent usability. Low-cost CONNECT proxies are not drop-in Workers fetch integrations; do not implement a custom HTTP/TLS stack without evidence. Live CLI check succeeded on 2026-09-15: `node --env-file=.env --env-file=/Users/cpolive/Sync/agent-config/environment/agents.env dist/cli.js check example.com --json` returned available=false. Shared agents.env supplies API key; local .env supplies user/client IP. Remote Worker connectivity remains unverified. Implementation is committed; no paid resources provisioned and no replacement deployment created.
+
+## Local CLI installation
+
+Installed `/Users/cpolive/.local/bin/namecheap` on the existing PATH. This local Node launcher imports this checkout's `dist/cli.js` and reads only NAMECHEAP_* variables from the local `.env` then shared `agents.env`; shared-file values win, and explicit process environment wins over both. No secrets embedded or copied. Run `bun run build` after changing CLI source.
+
+Verified from `/tmp`: help, live `namecheap check example.com --json` (available=false), unknown option exit 2, explicit empty API key override exit 1. No skill needed for command usage based on the prior isolated baseline. Remote Worker egress remains deferred.
