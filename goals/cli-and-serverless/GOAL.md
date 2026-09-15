@@ -19,8 +19,9 @@ Expose domain checks, keyword searches, pricing and TLD listing through a CLI an
 - [x] Worker requires bearer token in every environment; request tests cover fail-closed behavior, invalid auth, initialization, tool listing, mocked success and upstream error results.
 - [x] Domain limit and per-domain provider errors handled with focused tests. Neutral unexpected-response diagnostics.
 - [x] Removed unsupported broad Cloudflare-range workaround from README; documented deployment prerequisite and account check.
-- [x] Checks pass: 36 tests, lint, typecheck, Node build; Wrangler bundle dry-run passed before the final method-policy change.
-- [ ] Commit/delivery recorded below.
+- [x] Checks pass: 36 tests, lint, typecheck, Node build; Wrangler bundle dry-run passed after the final method-policy change.
+- [x] Local implementation committed as `6bd5858` on `feat/cli-serverless`.
+- [ ] PR delivery remains pending the deployment architecture decision.
 - [ ] Select compatible static-IPv4 egress after cost review, obtain approved credentials and whitelist IPs.
 - [ ] Deploy in intended account and verify successful real Namecheap requests through both CLI and remote MCP. Mocked responses do not satisfy this criterion.
 
@@ -48,4 +49,4 @@ Sources:
 
 Grok 4.6 xhigh existing session: `/tmp/namecheap-consult/grok/session-id`. Current review records `/tmp/namecheap-consult/fix-review.*`; consultation completed successfully. Accepted GET/DELETE 405 after verifying SDK stream lifecycle, explicit Node CLI subprocess runtime, and stdio startup error handling. Rejected restoring unavailable=false for domain provider errors: it would falsely report taken; fail-batch policy is documented. Earlier Grok endorsed stateless transport and flagged domain cap; later recommended NUC relay, which is not the accepted direction. Earlier Claude timed out after 20 minutes without an opinion.
 
-Next: user question pending on Node serverless + Fixie free-tier proof versus keeping Workers. Low-cost CONNECT proxies are not drop-in Workers fetch integrations; do not implement a custom HTTP/TLS stack without evidence. No successful live Namecheap request yet. All code remains uncommitted at this checkpoint.
+Next: user question pending on Node serverless + Fixie free-tier proof versus keeping Workers. Low-cost CONNECT proxies are not drop-in Workers fetch integrations; do not implement a custom HTTP/TLS stack without evidence. No successful live Namecheap request yet. Implementation is committed; no paid resources provisioned and no replacement deployment created.
