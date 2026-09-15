@@ -1,10 +1,10 @@
 {
-	"name": "namecheap-mcp",
+	"name": "namecheap",
 	"version": "0.0.0",
 	"type": "module",
 	"bin": {
-		"namecheap-mcp": "dist/index.js",
-		"namecheap": "dist/cli.js"
+		"namecheap": "dist/cli.js",
+		"namecheap-stdio": "dist/index.js"
 	},
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json",

@@ -1,6 +1,6 @@
-# namecheap-mcp
+# namecheap
 
-[![GitHub release](https://img.shields.io/github/v/release/caiopizzol/namecheap-mcp)](https://github.com/caiopizzol/namecheap-mcp/releases)
+[![GitHub release](https://img.shields.io/github/v/release/caiopizzol/namecheap)](https://github.com/caiopizzol/namecheap/releases)
 
 Namecheap domain tools as an MCP server (local stdio or remote on Cloudflare Workers) and as a CLI. Check domain availability, search a keyword across TLDs, get pricing, and list supported TLDs.
 
@@ -44,6 +44,8 @@ namecheap search mybrand --json   # machine-readable output
 
 Run it from a checkout with `bun src/cli.ts <command>` or `node --env-file=.env dist/cli.js <command>`. The CLI reads the same environment variables as the server, plus `--sandbox` to force the sandbox API. It exits 1 on API errors and 2 on usage errors.
 
+After installing the package, `namecheap` runs the CLI and `namecheap-stdio` runs the MCP server.
+
 ## MCP over stdio
 
 ```json
@@ -83,7 +85,7 @@ Client configuration:
   "mcpServers": {
     "namecheap": {
       "type": "http",
-      "url": "https://namecheap-mcp.<your-subdomain>.workers.dev/mcp",
+      "url": "https://namecheap.<your-subdomain>.workers.dev/mcp",
       "headers": { "Authorization": "Bearer <MCP_AUTH_TOKEN>" }
     }
   }

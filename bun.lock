@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "namecheap-mcp",
+      "name": "namecheap",
       "dependencies": {
         "@cfworker/json-schema": "^4.1.1",
         "@modelcontextprotocol/sdk": "^1.27.1",
