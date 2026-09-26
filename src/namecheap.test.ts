@@ -194,6 +194,10 @@ it.each([
 		(c: NamecheapClient) => c.searchDomains("brand", ["com", "."]),
 	],
 	["an empty domain", (c: NamecheapClient) => c.checkDomains([""])],
+	[
+		"a domain with a comma",
+		(c: NamecheapClient) => c.checkDomains(["a,b.com"]),
+	],
 	["an empty pricing TLD", (c: NamecheapClient) => c.getPricing(".")],
 ])("refuses %s without making a request", async (_, call) => {
 	let calls = 0;
