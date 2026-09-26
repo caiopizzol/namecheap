@@ -215,6 +215,9 @@ export class NamecheapClient {
 		if (domains.length === 0) {
 			throw new NamecheapError("No domains provided");
 		}
+		if (domains.some((domain) => !domain.trim() || domain.includes(","))) {
+			throw new NamecheapError("Each domain must be one non-empty name");
+		}
 		const response = await this.call("namecheap.domains.check", {
 			DomainList: domains.join(","),
 		});
@@ -225,19 +228,27 @@ export class NamecheapClient {
 		keyword: string,
 		tlds: string[] = POPULAR_TLDS,
 	): Promise<DomainCheckResult[]> {
-		const domains = tlds.map((tld) => `${keyword}.${normalizeTld(tld)}`);
-		return this.checkDomains(domains);
+		if (!keyword.trim() || keyword.includes(",")) {
+			throw new NamecheapError("The keyword must be one non-empty name");
+		}
+		const names = tlds.map(normalizeTld);
+		if (names.some((tld) => !tld)) {
+			throw new NamecheapError("Each TLD must be non-empty");
+		}
+		return this.checkDomains(names.map((tld) => `${keyword}.${tld}`));
 	}
 
 	async getPricing(
 		tld: string,
 		action: PricingAction = "REGISTER",
 	): Promise<PriceEntry[]> {
+		const name = normalizeTld(tld);
+		if (!name) throw new NamecheapError("A TLD is required");
 		const response = await this.call("namecheap.users.getPricing", {
 			ProductType: "DOMAIN",
 			ProductCategory: "DOMAINS",
 			ActionName: action,
-			ProductName: normalizeTld(tld),
+			ProductName: name,
 		});
 		return parsePricing(response);
 	}
