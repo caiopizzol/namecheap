@@ -7,13 +7,17 @@ const env: Env = {
 	NAMECHEAP_API_KEY: "k",
 	NAMECHEAP_CLIENT_IP: "203.0.113.1",
 };
-function request(method: string, params = {}, token = "test-token") {
+function request(
+	method: string,
+	params = {},
+	token: string | null = "test-token",
+) {
 	return new Request("https://example.test/mcp", {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
 			Accept: "application/json, text/event-stream",
-			Authorization: `Bearer ${token}`,
+			...(token === null ? {} : { Authorization: `Bearer ${token}` }),
 		},
 		body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
 	});
@@ -30,12 +34,23 @@ it("requires a configured token even when ALLOW_UNAUTHENTICATED is set", async (
 		).status,
 	).toBe(503);
 });
-it("rejects incorrect tokens before fetching upstream", async () => {
+// A tool call is the only request that reaches Namecheap, so it is the one that proves the token is
+// checked first. `tools/list` never fetches upstream, so it cannot catch a check that runs too late.
+it.each([
+	["a wrong token", "wrong"],
+	["no Authorization header", null],
+])("rejects a tool call with %s before fetching upstream", async (_, token) => {
 	const fetch = vi.fn();
 	vi.stubGlobal("fetch", fetch);
-	expect(
-		(await worker.fetch(request("tools/list", {}, "wrong"), env)).status,
-	).toBe(401);
+	const response = await worker.fetch(
+		request(
+			"tools/call",
+			{ name: "check_domains", arguments: { domains: "example.com" } },
+			token,
+		),
+		env,
+	);
+	expect(response.status).toBe(401);
 	expect(fetch).not.toHaveBeenCalled();
 });
 it("initializes and lists tools without session state", async () => {
