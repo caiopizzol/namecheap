@@ -50,6 +50,8 @@ it.each([
 	["tlds", "extra"],
 	["check", "a.com", "--tlds", "com"],
 	["search", "a", "--tlds", ",,"],
+	["search", ""],
+	["search", "a,b"],
 	["check", ...Array.from({ length: 51 }, (_, i) => `a${i}.com`)],
 ])("rejects usage before configuration: %j", (...args) => {
 	const result = run(args);

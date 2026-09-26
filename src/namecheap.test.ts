@@ -181,6 +181,33 @@ describe("NamecheapClient", () => {
 	});
 });
 
+// The CLI and the MCP tools both call the client, so input the API cannot answer is refused here
+// rather than in only one of them.
+it.each([
+	["an empty keyword", (c: NamecheapClient) => c.searchDomains("", ["com"])],
+	[
+		"a keyword with a comma",
+		(c: NamecheapClient) => c.searchDomains("a,b", ["com"]),
+	],
+	[
+		"an empty TLD in a search",
+		(c: NamecheapClient) => c.searchDomains("brand", ["com", "."]),
+	],
+	["an empty domain", (c: NamecheapClient) => c.checkDomains([""])],
+	["an empty pricing TLD", (c: NamecheapClient) => c.getPricing(".")],
+])("refuses %s without making a request", async (_, call) => {
+	let calls = 0;
+	const client = new NamecheapClient(
+		{ apiUser: "u", apiKey: "k", clientIp: "203.0.113.1" },
+		async () => {
+			calls++;
+			return { status: 200, text: async () => CHECK_XML };
+		},
+	);
+	await expect(call(client)).rejects.toThrow(NamecheapError);
+	expect(calls).toBe(0);
+});
+
 it("rejects oversized checks without making a request", async () => {
 	let calls = 0;
 	const client = new NamecheapClient(

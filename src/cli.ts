@@ -94,6 +94,8 @@ async function main(argv: string[]) {
 			if (rest.length !== 1)
 				throw new UsageError("search: exactly one argument is required");
 			const keyword = rest[0];
+			if (!keyword.trim() || keyword.includes(","))
+				throw new UsageError("search: the keyword must be one non-empty name");
 			const tlds =
 				values.tlds === undefined
 					? POPULAR_TLDS
