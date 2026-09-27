@@ -1,19 +1,11 @@
 #!/usr/bin/env node
 
 import { parseArgs } from "node:util";
+import { COMMANDS, UsageError } from "./commands.js";
 import {
-	formatDomainResults,
-	formatPricing,
-	formatSearchResults,
-	formatTldList,
-} from "./formatters.js";
-import {
-	MAX_DOMAINS_PER_CHECK,
 	NamecheapClient,
-	normalizeTld,
 	POPULAR_TLDS,
 	readConfigFromEnv,
-	splitList,
 } from "./namecheap.js";
 
 const USAGE = `Usage: namecheap <command> [options]
@@ -40,8 +32,6 @@ function fail(message: string, code = 1): never {
 	process.exit(code);
 }
 
-class UsageError extends Error {}
-
 function createClient(sandbox: boolean | undefined): NamecheapClient {
 	const config = readConfigFromEnv(process.env);
 	if (sandbox) config.sandbox = true;
@@ -67,72 +57,16 @@ async function main(argv: string[]) {
 		process.exit(values.help ? 0 : 2);
 	}
 
-	if (!["check", "search", "pricing", "tlds"].includes(command))
+	if (!Object.hasOwn(COMMANDS, command))
 		throw new UsageError(`Unknown command "${command}"`);
 	if (values.tlds !== undefined && command !== "search")
 		throw new UsageError("--tlds is only supported by search");
 	if (values.action !== undefined && command !== "pricing")
 		throw new UsageError("--action is only supported by pricing");
-	const print = (data: unknown, text: () => string) => {
-		console.log(values.json ? JSON.stringify(data, null, 2) : text());
-	};
-
-	switch (command) {
-		case "check": {
-			const domains = rest.flatMap(splitList);
-			if (domains.length === 0)
-				throw new UsageError("check: at least one domain is required");
-			if (domains.length > MAX_DOMAINS_PER_CHECK)
-				throw new UsageError(
-					`At most ${MAX_DOMAINS_PER_CHECK} domains can be checked per request`,
-				);
-			const results = await createClient(values.sandbox).checkDomains(domains);
-			print(results, () => formatDomainResults(results));
-			return;
-		}
-		case "search": {
-			if (rest.length !== 1)
-				throw new UsageError("search: exactly one argument is required");
-			const keyword = rest[0];
-			if (!keyword.trim() || keyword.includes(","))
-				throw new UsageError("search: the keyword must be one non-empty name");
-			const tlds =
-				values.tlds === undefined
-					? POPULAR_TLDS
-					: splitList(values.tlds).map(normalizeTld);
-			if (tlds.length === 0 || tlds.some((tld) => !tld))
-				throw new UsageError("search: --tlds must contain TLDs");
-			if (tlds.length > MAX_DOMAINS_PER_CHECK)
-				throw new UsageError(
-					`At most ${MAX_DOMAINS_PER_CHECK} domains can be checked per request`,
-				);
-			const results = await createClient(values.sandbox).searchDomains(
-				keyword,
-				tlds,
-			);
-			print(results, () => formatSearchResults(keyword, results));
-			return;
-		}
-		case "pricing": {
-			if (rest.length !== 1)
-				throw new UsageError("pricing: exactly one argument is required");
-			const tld = normalizeTld(rest[0]);
-			if (!tld) throw new UsageError("pricing: a TLD is required");
-			const action = (values.action ?? "REGISTER").toUpperCase();
-			if (action !== "REGISTER" && action !== "RENEW" && action !== "TRANSFER")
-				throw new UsageError(`pricing: unknown action "${values.action}"`);
-			const prices = await createClient(values.sandbox).getPricing(tld, action);
-			print({ tld, action, prices }, () => formatPricing(tld, action, prices));
-			return;
-		}
-		case "tlds": {
-			if (rest.length !== 0)
-				throw new UsageError("tlds: no arguments are supported");
-			const tlds = await createClient(values.sandbox).getTldList();
-			print(tlds, () => formatTldList(tlds));
-			return;
-		}
-	}
+	const { data, text } = await COMMANDS[command](rest, values, () =>
+		createClient(values.sandbox),
+	);
+	console.log(values.json ? JSON.stringify(data, null, 2) : text);
 }
 
 main(process.argv.slice(2)).catch((err) => {
