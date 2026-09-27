@@ -8,5 +8,5 @@
 		"types": ["node"]
 	},
 	"include": ["src"],
-	"exclude": ["src/worker.ts", "src/**/*.test.ts"]
+	"exclude": ["src/worker.ts", "src/fake-namecheap.ts", "src/**/*.test.ts"]
 }

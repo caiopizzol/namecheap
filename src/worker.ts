@@ -14,8 +14,6 @@ export interface Env {
 	MCP_AUTH_TOKEN?: string;
 }
 
-const MCP_PATH = "/mcp";
-
 function constantTimeEqual(a: string, b: string): boolean {
 	const aBytes = new TextEncoder().encode(a);
 	const bBytes = new TextEncoder().encode(b);
@@ -76,15 +74,12 @@ async function handleMcp(request: Request, env: Env): Promise<Response> {
 	}
 }
 
-export default {
-	async fetch(request: Request, env: Env): Promise<Response> {
-		const { pathname } = new URL(request.url);
-		if (pathname === "/health") {
-			return new Response("ok");
-		}
-		if (pathname !== MCP_PATH) {
-			return new Response("Not found", { status: 404 });
-		}
+export const ROUTES: Record<
+	string,
+	(request: Request, env: Env) => Response | Promise<Response>
+> = {
+	"/health": () => new Response("ok"),
+	"/mcp": async (request, env) => {
 		const denied = authorize(request, env);
 		if (denied) return denied;
 		if (request.method !== "POST") {
@@ -97,5 +92,14 @@ export default {
 		} catch {
 			return jsonRpcError(-32603, "Internal server error", 500);
 		}
+	},
+};
+
+export default {
+	async fetch(request: Request, env: Env): Promise<Response> {
+		const { pathname } = new URL(request.url);
+		if (!Object.hasOwn(ROUTES, pathname))
+			return new Response("Not found", { status: 404 });
+		return ROUTES[pathname](request, env);
 	},
 };
