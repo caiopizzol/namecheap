@@ -84,3 +84,4 @@ bun run build   # refresh the compiled CLI and stdio server
 ```
 
 Tests live next to the source. `cli.ts` and `index.ts` start the CLI and stdio MCP; `worker.ts` handles HTTP. `commands.ts` defines the CLI commands, `namecheap.ts` talks to the API, `mcp-tools.ts` registers tools, and `formatters.ts` builds text output. `surfaces.test.ts` pins every command, tool, and route against the offline API in `fake-namecheap.ts`.
+
